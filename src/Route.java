@@ -8,11 +8,11 @@ public class Route {
     private boolean isFavorite;
     private LinkedList<String> locationPoints;
 
-    public Route(String id, double distance, LinkedList<String> locationPoints) {
+    public Route(String id, double distance, boolean isFavorite, int popularity, LinkedList<String> locationPoints) {
         this.id = id;
         this.distance = distance;
-        this.popularity = 0;
-        this.isFavorite = false;
+        this.popularity = popularity;
+        this.isFavorite = isFavorite;
         this.locationPoints = locationPoints;
     }
 
@@ -62,24 +62,57 @@ public class Route {
 
     @Override
     public String toString() {
-        return "Route{" +
+        StringBuilder sb = new StringBuilder();
+        sb.append("Route{" +
                 "id='" + id + '\'' +
                 ", distance=" + distance +
                 ", popularity=" + popularity +
                 ", isFavorite=" + isFavorite +
-                ", locationPoints=" + locationPoints +
-                '}';
+                ", locationPoints=");
+        if (locationPoints != null && !(locationPoints.getSize() == 0)) {
+            for (String location : locationPoints) {
+                sb.append(" -> ").append(location);
+            }
+        }
+        String result=sb.toString().replaceFirst(" -> "," ");
+        return result;
     }
 
+
     @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Route route = (Route) o;
-        return id == route.id && Double.compare(distance, route.distance) == 0 && popularity == route.popularity && isFavorite == route.isFavorite;
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        Route route = (Route) obj;
+
+        if (!id.equals(route.id)) return false;
+
+        if (Double.compare(distance, route.distance) != 0) return false;
+
+        if (popularity != route.popularity) return false;
+
+        if (isFavorite != route.isFavorite) return false;
+        if (locationPoints == null && route.locationPoints != null || locationPoints != null && route.locationPoints == null)
+            return false;
+
+        if (locationPoints != null && !locationPoints.equals(route.locationPoints))
+            return false;
+
+        return true;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, distance, popularity, isFavorite);
+        int result = 53;
+        result = 47 * result + (id == null ? 0 : id.hashCode());
+        long distanceBits = (long) distance;
+        result = 47 * result + (int) (distanceBits ^ (distanceBits >>> 32));
+        result = 47 * result + popularity;
+        result = 47 * result + (isFavorite ? 1 : 0);
+        result = 47 * result + (locationPoints == null ? 0 : locationPoints.hashCode());
+        return result;
     }
 }
+
+

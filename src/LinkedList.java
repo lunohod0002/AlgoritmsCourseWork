@@ -2,19 +2,17 @@ import java.util.*;
 
 
 public class LinkedList<E> implements Iterable<E> {
-    private static int size = 0;
-    private Node<E> lastReturned;
-    private Node<E> next;
-    private int nextIndex;
+    private int size = 0;
+    Node<E> lastReturned;
 
-    Node<E> head = new Node<E>(null);
-    Node<E> tail = new Node<E>(null);
+    Node<E> head = null;
+    Node<E> tail = null;
 
     public void remove(E element) {
         Node<E> currentNode = head;
         if (head == null)
             return;
-        while (currentNode.getNextNode() != null) {
+        while (currentNode!= null) {
             if (currentNode.getData().equals(element)) {
                 Node<E> nextNode = currentNode.getNextNode();
                 Node<E> prevNode = currentNode.getPrevNode();
@@ -25,10 +23,11 @@ public class LinkedList<E> implements Iterable<E> {
                 }
                 if (nextNode == null) {
                     tail = prevNode;
+                    prevNode.setNextNode(null);
                 } else {
                     nextNode.setPrevNode(prevNode);
-                }
 
+                }
                 size--;
                 return;
 
@@ -42,19 +41,21 @@ public class LinkedList<E> implements Iterable<E> {
     }
 
     public LinkedList(Collection<? extends E> c) {
+        this();  // Вызов конструктора без параметров, чтобы инициализировать пустой список
+
         if (c != null) {
             for (E element : c) {
-                add(element);
+                add(element); // Добавляем каждый элемент в конец списка
             }
         }
     }
 
 
+
     public boolean add(E element) {
         Node<E> newNode = new Node<>(element);
-        if (this.head == null) {
+        if (head == null) {
             head = newNode;
-            next = head;
             tail = newNode;
             size++;
             return true;
@@ -75,48 +76,63 @@ public class LinkedList<E> implements Iterable<E> {
         if (head != null) {
             Node<E> currentNode = head;
             while (currentNode.getNextNode() != null) {
-                System.out.println(currentNode.getData());
+                System.out.println(currentNode.getData().toString());
                 currentNode = currentNode.getNextNode();
             }
-            System.out.println(currentNode.getData());
+            System.out.println(currentNode.getData().toString());
 
         }
     }
 
 
     public void set(int position, E element) {
-        Node<E> currentNode;
-        if (position <= (size << 2)) {
-            currentNode = head;
-            for (int j = 1; j < position; j++) {
-                currentNode = currentNode.getNextNode();
-            }
-        } else {
-            currentNode = tail;
-            for (int j = size - 1; j > position; j--) {
-                currentNode = currentNode.getPrevNode();
-            }
+        if (position < 0 || position >= size) {
+            throw new IndexOutOfBoundsException("Invalid position: " + position);
         }
-        currentNode.setData(element);
-    }
 
-
-    public E getById(int position) {
         Node<E> currentNode;
-        if (position <= (size << 2)) {
+        // Оптимизируем выбор направления обхода
+        if (position < (size >> 1)) { // Если позиция ближе к началу
             currentNode = head;
             for (int j = 0; j < position; j++) {
                 currentNode = currentNode.getNextNode();
             }
-        } else {
+        } else { // Если позиция ближе к концу
             currentNode = tail;
             for (int j = size - 1; j > position; j--) {
                 currentNode = currentNode.getPrevNode();
             }
         }
-        return (E) currentNode.getData().toString();
+
+        currentNode.setData(element);
+    }
+    private boolean isElementIndex(int position) {
+        return position >= 0 && position < size;
     }
 
+
+
+
+    public E get(int position) {
+        if (!isElementIndex(position)) { // Проверяем, что индекс валиден
+            throw new IndexOutOfBoundsException(position + " is out of bounds of the linked list");
+        }
+
+        Node<E> currentNode;
+        if (position < (size >> 1)) {
+            currentNode = head;
+            for (int i = 0; i < position; i++) {
+                currentNode = currentNode.getNextNode();
+            }
+        } else {
+            currentNode = tail;
+            for (int i = size - 1; i > position; i--) {
+                currentNode = currentNode.getPrevNode();
+            }
+        }
+
+        return currentNode.getData();
+    }
 
     public void update(E element1, E element) {
         Node<E> currentNode = head;
@@ -149,17 +165,22 @@ public class LinkedList<E> implements Iterable<E> {
     }
 
     public boolean contains(Object element) {
-        if (head == null) return false;
         Node<E> currentNode = head;
-        while (currentNode.getNextNode() != null) {
-            if (currentNode.getData().equals(element)) {
-                return true;
+        while (currentNode != null) {
+            if (element == null) {
+                if (currentNode.getData() == null) {
+                    return true;
+                }
+            } else {
+                if (element.equals(currentNode.getData())) {
+                    return true;
+                }
             }
             currentNode = currentNode.getNextNode();
         }
         return false;
-
     }
+
 
 
     public void getElement(String id) {
@@ -219,79 +240,25 @@ public class LinkedList<E> implements Iterable<E> {
     public boolean Checkposition(int position) {
         return position >= 0;
     }
-    public static <E> Node<E> mergeSort(Node<E> head, Comparator<E> comparator) {
-        if (head == null || head.getNextNode() == null) {
-            return head;
-        }
-
-        Node<E> middle = getMiddle(head);
-        Node<E> nextOfMiddle = middle.getNextNode();
-        middle.setNextNode(null);
-
-        Node<E> left = mergeSort(head, comparator);
-        Node<E> right = mergeSort(nextOfMiddle, comparator);
-
-        return merge(left, right, comparator);
-    }
-
-    private static <E> Node<E> getMiddle(Node<E> head) {
-        if (head == null) {
-            return null;
-        }
-
-        Node<E> slow = head;
-        Node<E> fast = head;
-
-        while (fast.getNextNode() != null && fast.getNextNode().getNextNode() != null) {
-            slow = slow.getNextNode();
-            fast = fast.getNextNode().getNextNode();
-        }
-
-        return slow;
-    }
-
-    private static <E> Node<E> merge(Node<E> left, Node<E> right, Comparator<E> comparator) {
-        Node<E> dummy = new Node<>(null);
-        Node<E> tail = dummy;
-
-        while (left != null && right != null) {
-            if (comparator.compare(left.getData(), right.getData()) <= 0) {
-                tail.setNextNode(left);
-                left = left.getNextNode();
-            } else {
-                tail.setNextNode(right);
-                right = right.getNextNode();
-            }
-            tail = tail.getNextNode();
-        }
-
-        if (left != null) {
-            tail.setNextNode(left);
-        } else {
-            tail.setNextNode(right);
-        }
-
-        return dummy.getNextNode();
-    }
-    public void sort(Comparator<E> comparator) {
-        head = mergeSort(head, comparator);
-    }
-
 
 
     public LinkedList() {
         this.head = null;
         this.size = 0;
         this.lastReturned = null;
-
     }
 
     public class MyIterator implements Iterator<E> {
+        private Node<E> nextNode;
         private int nextIndex = 0;
+
+        public MyIterator() {
+            this.nextNode = head; // Начинаем с головы списка
+        }
 
         @Override
         public boolean hasNext() {
-            return nextIndex < size;
+            return nextNode != null;
         }
 
         @Override
@@ -300,14 +267,11 @@ public class LinkedList<E> implements Iterable<E> {
                 throw new NoSuchElementException();
             }
 
-            if (next == null) {
-                next = head;
-            }
-
-            lastReturned = next;
-            next = next.getNextNode();
+            lastReturned = nextNode;
+            nextNode = nextNode.getNextNode();
             nextIndex++;
-            return lastReturned.getData();
+
+            return lastReturned.getData(); // Возвращаем данные текущего узла
         }
     }
 

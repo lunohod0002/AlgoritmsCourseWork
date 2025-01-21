@@ -1,7 +1,3 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
 public class NavigatorImpl implements Navigator {
     private LinkedList<Route> linkedList;
@@ -13,6 +9,9 @@ public class NavigatorImpl implements Navigator {
 
     @Override
     public void addRoute(Route route) {
+        if (getRoute(route.getId())!=null){
+            throw new IllegalArgumentException("Id %s is already exists".formatted(route.getId()));
+        }
         linkedList.add(route);
     }
 
@@ -56,16 +55,10 @@ public class NavigatorImpl implements Navigator {
 
     @Override
     public void chooseRoute(String routeId) {
-        if (linkedList == null || linkedList.getHead() == null)
-            return;
-
-        for (Route route : linkedList) {
-            if (routeId.equals(route.getId())) {
-                route.setPopularity(route.getPopularity() + 1);
-                return;
-            }
+        Route route = getRoute(routeId);
+        if (route != null) {
+            route.setPopularity(route.getPopularity() + 1);
         }
-
     }
 
     public void display() {
@@ -73,91 +66,145 @@ public class NavigatorImpl implements Navigator {
     }
 
 
-
-
     @Override
-    public Iterable<Route> searchRoutes(String startPoint, String endPoint) {
-        LinkedList<Route> resultList = new LinkedList<>();
-        for (Route route : resultList) {
-            if (route.getLocationPoints().getById(0).equals(startPoint) &&
-                    route.getLocationPoints().getById(route.getLocationPoints().getSize() - 1).equals(endPoint)) {
-                resultList.add(route);
+    public Iterable<Route> searchRoutes(String startPoint, String destinationPoint) {
+        LinkedList<Route> result = new LinkedList<>();
+
+
+        for (Route route : linkedList) {
+            LinkedList<String> locationPoints = route.getLocationPoints();
+
+            if (locationPoints.get(0).equals(startPoint) && locationPoints.get(locationPoints.getSize() - 1).equals(destinationPoint)) {
+                result.add(route);
+
+
             }
         }
-        Comparator<Route> routeComparator = new Comparator<Route>() {
-            @Override
-            public int compare(Route r1, Route r2) {
-                if (r1.isFavorite() && !r2.isFavorite()) return -1;
-                if (!r1.isFavorite() && r2.isFavorite()) return 1;
-                int distanceComparison = Double.compare(r1.getDistance(), r2.getDistance());
-                if (distanceComparison != 0) return distanceComparison;
-                return Integer.compare(r2.getPopularity(), r1.getPopularity());
+        if (result.getSize() > 1) {
+            firstSort(result);
+        }
+
+        return result;
+    }
+
+    private void firstSort(LinkedList<Route> result) {
+        for (int i = 0; i < result.getSize(); i++) {
+            for (int j = 0; j < result.getSize() - i - 1; j++) {
+                Route route1 = result.get(j);
+                Route route2 = result.get(j + 1);
+                if (route1.isFavorite() != route2.isFavorite()) {
+                    if (!route1.isFavorite()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    }
+                } else {
+                    if (route1.getLocationPoints().getSize() > route2.getLocationPoints().getSize()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    } else if (route1.getLocationPoints().getSize() == route2.getLocationPoints().getSize()) {
+                        if (route1.getPopularity() < route2.getPopularity()) {
+                            result.set(j, route2);
+                            result.set(j + 1, route1);
+                        }
+
+                    }
+                }
             }
-        };
-
-
-        resultList.sort(routeComparator);
-        return resultList;
+        }
     }
 
     @Override
     public Iterable<Route> getFavoriteRoutes(String destinationPoint) {
-        LinkedList<Route> resultList = new LinkedList<>();
+        LinkedList<Route> result = new LinkedList<>();
 
-        for (Route route : resultList) {
-            if (route.isFavorite() &&
-                    route.getLocationPoints().contains(destinationPoint) && !route.getLocationPoints().getById(0).equals(destinationPoint)) {
-                resultList.add(route);
+        for (Route route : linkedList) {
+            // System.out.println(route.toString());
+            // System.out.println(route.getLocationPoints().contains(destinationPoint));
+            if (route.isFavorite() && route.getLocationPoints().contains(destinationPoint)) {
+                if (!route.getLocationPoints().getHead().getData().equals(destinationPoint)) {
+                    result.add(route);
+                    // System.out.println(route.toString());
+                }
             }
         }
-        Comparator<Route> routeComparator = new Comparator<Route>() {
-            @Override
-            public int compare(Route r1, Route r2) {
-                if (r1.isFavorite() && !r2.isFavorite()) return -1;
-                if (!r1.isFavorite() && r2.isFavorite()) return 1;
-                int popularityComparsion = Integer.compare(r2.getPopularity(), r1.getPopularity());
-                int distanceComparison = Double.compare(r1.getDistance(), r2.getDistance());
-                if (distanceComparison != 0) return distanceComparison;
-                else if (popularityComparsion != 0) return popularityComparsion;
-                else return (Integer.compare(r2.getLocationPoints().getSize(), r1.getLocationPoints().getSize()));
-            }
 
-            ;
-
-
-        };
-        LinkedList<Route> top5RoutesList = new LinkedList<>();
-
-        for (int i = 0; i < Math.min(3, resultList.getSize()); i++) {
-            top5RoutesList.add((resultList.getById(i)));
+        if (result.getSize() > 1) {
+            bubbleSortForFavoriteRoutes(result);
         }
-        top5RoutesList.sort(routeComparator);
-        return top5RoutesList;
+
+        return result;
+    }
+
+
+    private void bubbleSortForFavoriteRoutes(LinkedList<Route> result) {
+        for (int i = 0; i < result.getSize() - 1; i++) {
+            for (int j = 0; j < result.getSize() - 1 - i; j++) {
+                Route route1 = result.get(j);
+                Route route2 = result.get(j + 1);
+                if (route1.isFavorite() != route2.isFavorite()) {
+                    if (!route1.isFavorite()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    }
+                }
+                else if (route1.getDistance() > route2.getDistance()) {
+                    result.set(j, route2);
+                    result.set(j + 1, route1);
+                } else if (route1.getDistance() == route2.getDistance() && route1.getPopularity() < route2.getPopularity()) {
+                    result.set(j, route2);
+                    result.set(j + 1, route1);
+                }
+
+            }
+        }
     }
 
     @Override
     public Iterable<Route> getTop3Routes() {
-        LinkedList<Route> resultList = new LinkedList<>();
 
-        for (Route route : linkedList) {
-            resultList.add(route);
+        if (linkedList == null || linkedList.getSize() == 0) {
+            return new LinkedList<>();
         }
 
-        Comparator<Route> routeComparator = new Comparator<Route>() {
-            @Override
-            public int compare(Route r1, Route r2) {
-                int distanceComparison = Double.compare(r1.getDistance(), r2.getDistance());
-                if (distanceComparison != 0) return distanceComparison;
-                else return Integer.compare(r2.getPopularity(), r1.getPopularity());
+        LinkedList<Route> result = linkedList;
+
+        for (int i = 0; i < result.getSize() - 1; i++) {
+            for (int j = 0; j < result.getSize() - 1 - i; j++) {
+                Route route1 = result.get(j);
+                Route route2 = result.get(j + 1);
+                if (route1.isFavorite() != route2.isFavorite()) {
+                    if (!route1.isFavorite()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    }
+                } else
+                if (route1.getPopularity() < route2.getPopularity()) {
+                    result.set(j, route2);
+                    result.set(j + 1, route1);
+                }
+                else if (route1.getPopularity() == route2.getPopularity()) {
+                    if (route1.getDistance() > route2.getDistance()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    }
+                    else if (route1.getDistance() == route2.getDistance() &&
+                            route1.getLocationPoints().getSize() > route2.getLocationPoints().getSize()) {
+                        result.set(j, route2);
+                        result.set(j + 1, route1);
+                    }
+                }
             }
-        };
-
-
-        LinkedList<Route> top3RoutesLinkedList = new LinkedList<>();
-        for (int i = 0; i < Math.min(5, resultList.getSize()); i++) {
-            top3RoutesLinkedList.add(resultList.getById(i));
         }
-        top3RoutesLinkedList.sort(routeComparator);
-        return top3RoutesLinkedList;
+
+        LinkedList<Route> top5Routes = new LinkedList<>();
+        for (int i = 0; i < Math.min(5, result.getSize()); i++) {
+            top5Routes.add(result.get(i));
+        }
+
+        return top5Routes;
     }
 }
+
+
+
+
